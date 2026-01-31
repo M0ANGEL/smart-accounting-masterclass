@@ -15,7 +15,8 @@ RUN apk add --no-cache \
     libzip-dev \
     postgresql-dev \
     mysql-dev \
-    mariadb-connector-c-dev
+    mariadb-connector-c-dev \
+    netcat-openbsd
 
 # Instalar extensiones de PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -37,30 +38,21 @@ WORKDIR /var/www/html
 # Copiar archivos de configuración
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Copiar código de la aplicación
 COPY . .
 
-# Instalar dependencias de Composer (sin dev para producción)
+# Instalar dependencias de Composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Generar clave de aplicación si no existe
-RUN php artisan key:generate --force || true
-
-# Limpiar caché
-RUN php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
-
 # Exponer puerto (Railway usa 8080)
 EXPOSE 8080
 
-# Ejecutar migraciones durante el build
-RUN php artisan migrate --force || echo "Migraciones ejecutadas o error"
-
-# Comando de inicio
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Comando de inicio - USA EL SCRIPT
+CMD ["/usr/local/bin/start.sh"]
