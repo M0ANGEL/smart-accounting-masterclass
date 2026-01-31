@@ -7,93 +7,75 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PaymentConfirmation;
 use App\Mail\PaymentError;
-use Illuminate\Support\Str;
 
 class PaymentQRService
 {
-    protected $checkoutLink;
+    protected $qrLink;
     
     public function __construct()
     {
-        $this->checkoutLink = config('wompi.checkout_link');
+        $this->qrLink = config('wompi.qr_link');
     }
     
     /**
-     * Generar link de pago para Wompi QR
+     * Procesar el pago vía QR
      */
-    public function generatePaymentLink(Payment $payment): string
+    public function processPayment(Payment $payment): string
     {
         try {
-            // Generar referencia única
-            $reference = $this->generateReference($payment);
+            // Generar referencia única para el QR
+            $reference = $this->generateQRReference($payment);
             
-            // Actualizar referencia en el pago
+            // Actualizar la referencia en el pago
             $payment->update([
                 'reference' => $reference,
-                'observations' => 'Link de pago generado - Esperando confirmación',
+                'observations' => 'QR generado - Esperando pago',
             ]);
             
-            Log::info('Link de pago generado', [
+            Log::info('QR generado para pago', [
                 'payment_id' => $payment->id,
                 'reference' => $reference,
                 'email' => $payment->customer_email,
             ]);
             
-            // Generar link de checkout de Wompi
-            return $this->generateWompiCheckoutLink($reference, $payment);
+            // Retornar el link del QR con la referencia
+            return $this->getQRUrl($reference);
             
         } catch (\Exception $e) {
-            Log::error('Error generando link de pago: ' . $e->getMessage());
+            Log::error('Error generando QR: ' . $e->getMessage());
             throw $e;
         }
     }
     
     /**
-     * Generar referencia única para Wompi
+     * Generar referencia única para el QR
      */
-    private function generateReference(Payment $payment): string
+    private function generateQRReference(Payment $payment): string
     {
-        // Formato recomendado por Wompi: alfanumérico, único, sin caracteres especiales
+        // Formato: MC_QR_{timestamp}_{random}_{email_hash}
         $timestamp = time();
-        $random = Str::upper(Str::random(8));
-        $emailPrefix = substr(str_replace(['@', '.', '-'], '', $payment->customer_email), 0, 4);
+        $random = substr(md5(uniqid()), 0, 6);
+        $emailHash = substr(md5($payment->customer_email), 0, 4);
         
-        return "MC_{$timestamp}_{$random}_{$emailPrefix}";
+        return "MC_QR_{$timestamp}_{$random}_{$emailHash}";
     }
     
     /**
-     * Generar link de checkout de Wompi con los parámetros correctos
+     * Obtener URL del QR con referencia
      */
-    private function generateWompiCheckoutLink(string $reference, Payment $payment): string
+    private function getQRUrl(string $reference): string
     {
-        $baseUrl = rtrim($this->checkoutLink, '/');
-        
-        // Parámetros para Wompi Checkout Link
-        $params = [
-            'public-key' => config('wompi.keys.public'),
-            'currency' => 'COP',
-            'amount-in-cents' => $payment->amount,
-            'reference' => $reference,
-            'redirect-url' => route('payment.verify', $reference),
-            'customer-data' => json_encode([
-                'email' => $payment->customer_email,
-                'full-name' => $payment->customer_name,
-                'phone-number' => $payment->customer_phone,
-            ]),
-        ];
-        
-        // Construir URL con parámetros
-        $queryString = http_build_query($params);
-        
-        return "{$baseUrl}?{$queryString}";
+        $baseUrl = rtrim($this->qrLink, '/');
+        return "{$baseUrl}?reference={$reference}";
     }
     
     /**
-     * Verificar estado del pago
+     * Verificar estado del pago después del QR
      */
     public function verifyPayment(string $reference): array
     {
         try {
+            // Buscar el pago por referencia
             $payment = Payment::where('reference', $reference)->first();
             
             if (!$payment) {
@@ -103,8 +85,11 @@ class PaymentQRService
                 ];
             }
             
-            // Si el pago ya está aprobado, retornar éxito
-            if ($payment->isApproved()) {
+            // Aquí normalmente harías una llamada a la API de Wompi
+            // para verificar el estado real del pago
+            // Por ahora, simularemos que el pago fue exitoso si el estado es approved
+            
+            if ($payment->status === 'approved') {
                 return [
                     'success' => true,
                     'payment' => $payment,
@@ -112,58 +97,33 @@ class PaymentQRService
                 ];
             }
             
-            // Si el pago está fallido
-            if ($payment->isFailed()) {
-                return [
-                    'success' => false,
-                    'payment' => $payment,
-                    'message' => 'Pago fallido o rechazado',
-                ];
-            }
-            
-            // Si sigue pendiente
             return [
                 'success' => false,
                 'payment' => $payment,
-                'pending' => true,
-                'message' => 'Pago pendiente de confirmación',
+                'message' => 'Pago pendiente o rechazado',
             ];
             
         } catch (\Exception $e) {
-            Log::error('Error verificando pago: ' . $e->getMessage());
+            Log::error('Error verificando pago QR: ' . $e->getMessage());
             throw $e;
         }
     }
     
     /**
-     * Procesar webhook de Wompi
+     * Procesar webhook de Wompi para QR
      */
     public function processWebhook(array $data): bool
     {
         try {
-            Log::info('=== PROCESANDO WEBHOOK WOMPI ===', $data);
+            Log::info('Procesando webhook para QR', $data);
             
-            // Verificar estructura del webhook
-            if (!isset($data['event']) || !isset($data['data'])) {
-                Log::warning('Estructura de webhook inválida', $data);
+            if (!isset($data['reference'])) {
+                Log::warning('Webhook sin referencia', $data);
                 return false;
             }
             
-            $event = $data['event'];
-            $transaction = $data['data']['transaction'] ?? null;
-            
-            if ($event !== 'transaction.updated' || !$transaction) {
-                Log::info('Webhook no relevante', ['event' => $event]);
-                return false;
-            }
-            
-            $reference = $transaction['reference'] ?? null;
-            $status = strtolower($transaction['status'] ?? 'pending');
-            
-            if (!$reference) {
-                Log::warning('Webhook sin referencia', $transaction);
-                return false;
-            }
+            $reference = $data['reference'];
+            $status = strtolower($data['status'] ?? 'pending');
             
             // Buscar pago por referencia
             $payment = Payment::where('reference', $reference)->first();
@@ -173,109 +133,70 @@ class PaymentQRService
                 return false;
             }
             
-            // Guardar estado anterior
-            $oldStatus = $payment->status;
-            
-            // Actualizar pago
+            // Actualizar estado
             $payment->update([
                 'status' => $status,
-                'wompi_id' => $transaction['id'] ?? null,
-                'payment_method' => $transaction['payment_method_type'] ?? null,
-                'payment_method_type' => $transaction['payment_method']['type'] ?? null,
-                'wompi_response' => $transaction,
-                'observations' => "Actualizado por webhook: {$status}",
-            ]);
-            
-            Log::info('Pago actualizado por webhook', [
-                'reference' => $reference,
-                'old_status' => $oldStatus,
-                'new_status' => $status,
-                'transaction_id' => $transaction['id'] ?? null,
+                'wompi_response' => $data,
+                'observations' => 'Actualizado por webhook QR: ' . $status,
             ]);
             
             // Enviar email según estado
-            $this->handlePaymentStatusChange($payment, $oldStatus, $status);
+            if ($status === 'approved') {
+                $this->sendConfirmationEmail($payment);
+                Log::info('Email de confirmación enviado', [
+                    'email' => $payment->customer_email,
+                    'reference' => $reference,
+                ]);
+            } elseif (in_array($status, ['declined', 'failed', 'error'])) {
+                $this->sendErrorEmail($payment);
+                Log::info('Email de error enviado', [
+                    'email' => $payment->customer_email,
+                    'status' => $status,
+                ]);
+            }
             
             return true;
             
         } catch (\Exception $e) {
-            Log::error('Error procesando webhook: ' . $e->getMessage(), [
-                'data' => $data,
-                'trace' => $e->getTraceAsString(),
-            ]);
+            Log::error('Error procesando webhook QR: ' . $e->getMessage());
             return false;
-        }
-    }
-    
-    /**
-     * Manejar cambio de estado del pago
-     */
-    private function handlePaymentStatusChange(Payment $payment, string $oldStatus, string $newStatus): void
-    {
-        try {
-            // Solo procesar si el estado cambió
-            if ($oldStatus === $newStatus) {
-                return;
-            }
-            
-            // Estados de éxito
-            if ($newStatus === 'approved') {
-                $this->sendConfirmationEmail($payment);
-                Log::info('Email de confirmación enviado', [
-                    'email' => $payment->customer_email,
-                    'reference' => $payment->reference,
-                ]);
-            }
-            
-            // Estados de error
-            elseif (in_array($newStatus, ['declined', 'failed', 'error', 'voided'])) {
-                $this->sendErrorEmail($payment, $newStatus);
-                Log::info('Email de error enviado', [
-                    'email' => $payment->customer_email,
-                    'status' => $newStatus,
-                ]);
-            }
-            
-        } catch (\Exception $e) {
-            Log::error('Error manejando cambio de estado: ' . $e->getMessage());
         }
     }
     
     /**
      * Enviar email de confirmación
      */
-    public function sendConfirmationEmail(Payment $payment): void
+    private function sendConfirmationEmail(Payment $payment): void
     {
         try {
             Mail::to($payment->customer_email)->send(new PaymentConfirmation($payment));
-            Log::info('✅ Email de confirmación enviado exitosamente', [
+            Log::info('Email de confirmación enviado exitosamente', [
                 'to' => $payment->customer_email,
                 'payment_id' => $payment->id,
             ]);
         } catch (\Exception $e) {
-            Log::error('❌ Error enviando email de confirmación: ' . $e->getMessage());
+            Log::error('Error enviando email de confirmación: ' . $e->getMessage());
         }
     }
     
     /**
      * Enviar email de error
      */
-    public function sendErrorEmail(Payment $payment, string $status = 'failed'): void
+    private function sendErrorEmail(Payment $payment): void
     {
         try {
-            Mail::to($payment->customer_email)->send(new PaymentError($payment, $status));
-            Log::info('✅ Email de error enviado exitosamente', [
+            Mail::to($payment->customer_email)->send(new PaymentError($payment));
+            Log::info('Email de error enviado exitosamente', [
                 'to' => $payment->customer_email,
                 'payment_id' => $payment->id,
-                'status' => $status,
             ]);
         } catch (\Exception $e) {
-            Log::error('❌ Error enviando email de error: ' . $e->getMessage());
+            Log::error('Error enviando email de error: ' . $e->getMessage());
         }
     }
     
     /**
-     * Verificar pagos pendientes (para cron job)
+     * Verificar si un pago está pendiente por mucho tiempo
      */
     public function checkPendingPayments(): void
     {
@@ -284,17 +205,15 @@ class PaymentQRService
                 ->where('created_at', '<', now()->subHours(24))
                 ->get();
             
-            Log::info('Verificando pagos pendientes', ['count' => $pendingPayments->count()]);
-            
             foreach ($pendingPayments as $payment) {
                 // Marcar como expirado
                 $payment->update([
                     'status' => 'failed',
-                    'observations' => 'Expirado automáticamente - Sin pago en 24 horas',
+                    'observations' => 'Expirado - Sin pago en 24 horas',
                 ]);
                 
                 // Enviar email de expiración
-                $this->sendErrorEmail($payment, 'expired');
+                $this->sendErrorEmail($payment);
                 
                 Log::info('Pago marcado como expirado', [
                     'payment_id' => $payment->id,
@@ -304,32 +223,6 @@ class PaymentQRService
             
         } catch (\Exception $e) {
             Log::error('Error verificando pagos pendientes: ' . $e->getMessage());
-        }
-    }
-    
-    /**
-     * Verificar pago específico con API de Wompi (opcional)
-     */
-    public function checkPaymentWithWompi(string $reference): ?array
-    {
-        try {
-            // Buscar pago
-            $payment = Payment::where('reference', $reference)->first();
-            
-            if (!$payment || !$payment->wompi_id) {
-                return null;
-            }
-            
-            // Aquí podrías implementar una llamada a la API de Wompi
-            // para verificar el estado real del pago
-            // $wompiService = app(WompiService::class);
-            // $transaction = $wompiService->getTransaction($payment->wompi_id);
-            
-            return null;
-            
-        } catch (\Exception $e) {
-            Log::error('Error verificando pago con Wompi: ' . $e->getMessage());
-            return null;
         }
     }
 }

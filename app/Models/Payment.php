@@ -42,14 +42,7 @@ class Payment extends Model
     // Accesor para teléfono completo
     public function getFullPhoneAttribute()
     {
-        $countries = config('wompi.countries', [
-            'CO' => ['name' => 'Colombia', 'code' => '+57'],
-            'EC' => ['name' => 'Ecuador', 'code' => '+593'],
-            'PE' => ['name' => 'Perú', 'code' => '+51'],
-            'MX' => ['name' => 'México', 'code' => '+52'],
-            'CL' => ['name' => 'Chile', 'code' => '+56'],
-        ]);
-        
+        $countries = config('wompi.countries', []);
         $countryCode = $countries[$this->country]['code'] ?? '+57';
         return $countryCode . ' ' . $this->customer_phone;
     }

@@ -7,7 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class PaymentConfirmation extends Mailable
+class PaymentError extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -20,14 +20,11 @@ class PaymentConfirmation extends Mailable
 
     public function build()
     {
-        return $this->subject('✅ Confirmación de Inscripción - Masterclass Smart Accounting')
-                    ->view('emails.confirmation')
+        return $this->subject('⚠️ Problema con tu pago - Masterclass Smart Accounting')
+                    ->view('emails.payment-error')
                     ->with([
                         'payment' => $this->payment,
-                        'course' => [
-                            'name' => 'Masterclass Auditoría Analítica y Power BI',
-                            'start_date' => '7 de Febrero 2024',
-                        ],
+                        'supportEmail' => config('wompi.email.support'),
                     ]);
     }
 }

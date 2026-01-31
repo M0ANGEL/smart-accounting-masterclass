@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pago No Completado</title>
+    <title>Error en el Pago</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -14,8 +14,7 @@
                 <div class="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full mb-6">
                     <i class="fas fa-exclamation-circle text-5xl text-white"></i>
                 </div>
-                <h1 class="text-3xl font-bold text-white mb-3">Pago No Completado</h1>
-                <p class="text-red-100">Hubo un problema con tu pago</p>
+                <h1 class="text-3xl font-bold text-white mb-3">Error en el Pago</h1>
             </div>
             
             <div class="p-8">
@@ -35,19 +34,12 @@
                             <span class="text-gray-600">Estado:</span>
                             <span class="font-bold text-red-600">{{ ucfirst($payment->status) }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Monto:</span>
-                            <span class="font-bold">{{ $payment->formatted_amount }}</span>
-                        </div>
                     </div>
                 </div>
                 
                 <div class="space-y-4">
                     <a href="{{ url('/') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center">
                         <i class="fas fa-redo mr-2"></i> Reintentar
-                    </a>
-                    <a href="mailto:soporte@smartaccounting.com" class="block w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-4 px-6 rounded-lg text-center">
-                        <i class="fas fa-headset mr-2"></i> Soporte
                     </a>
                 </div>
             </div>
