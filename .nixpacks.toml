@@ -1,5 +1,8 @@
+# BACKEND/.nixpacks.toml
 [phases.setup]
 cmds = ["apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev libzip-dev"]
+pkgs = ["php", "nginx", "libmysqlclient", "phpPackages.composer"]
+# SIN nodejs, SIN npm
 
 [phases.install]
 cmds = ["composer install --no-dev --optimize-autoloader"]
