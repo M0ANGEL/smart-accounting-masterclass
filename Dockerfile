@@ -59,5 +59,8 @@ RUN php artisan config:cache && \
 # Exponer puerto (Railway usa 8080)
 EXPOSE 8080
 
+# Ejecutar migraciones durante el build
+RUN php artisan migrate --force || echo "Migraciones ejecutadas o error"
+
 # Comando de inicio
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
