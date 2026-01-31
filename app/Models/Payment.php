@@ -3,71 +3,99 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Payment extends Model
 {
-    protected $table = 'payments';
-    
     protected $fillable = [
         'reference',
         'customer_name',
         'customer_email',
         'customer_phone',
-        'country_code',
         'country',
         'profession',
         'expectations',
         'amount',
         'currency',
         'status',
+        'wompi_id',
         'payment_method',
         'payment_method_type',
-        'wompi_id',
         'wompi_response',
+        'email_sent',
         'observations',
     ];
 
     protected $casts = [
-        'wompi_response' => 'array',
         'amount' => 'integer',
+        'email_sent' => 'boolean',
+        'wompi_response' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    protected function formattedAmount(): Attribute
+    // Accesor para el monto formateado
+    public function getFormattedAmountAttribute()
     {
-        return Attribute::make(
-            get: function () {
-                if ($this->currency === 'COP') {
-                    return '$' . number_format($this->amount / 100, 0, ',', '.') . ' COP';
-                }
-                return '$' . number_format($this->amount / 100, 2);
-            }
-        );
+        return '$' . number_format($this->amount / 100, 0, ',', '.') . ' COP';
     }
 
-    protected function fullPhone(): Attribute
+    // Accesor para teléfono completo
+    public function getFullPhoneAttribute()
     {
-        return Attribute::make(
-            get: function () {
-                return $this->country_code . ' ' . $this->customer_phone;
-            }
-        );
+        $countries = config('wompi.countries', [
+            'CO' => ['name' => 'Colombia', 'code' => '+57'],
+            'EC' => ['name' => 'Ecuador', 'code' => '+593'],
+            'PE' => ['name' => 'Perú', 'code' => '+51'],
+            'MX' => ['name' => 'México', 'code' => '+52'],
+            'CL' => ['name' => 'Chile', 'code' => '+56'],
+        ]);
+        
+        $countryCode = $countries[$this->country]['code'] ?? '+57';
+        return $countryCode . ' ' . $this->customer_phone;
     }
 
-    public function isApproved(): bool
+    // Método para verificar si está aprobado
+    public function isApproved()
     {
         return $this->status === 'approved';
     }
 
-    public function isPending(): bool
+    // Método para verificar si está pendiente
+    public function isPending()
     {
         return $this->status === 'pending';
     }
 
-    public function isFailed(): bool
+    // Método para verificar si falló
+    public function isFailed()
     {
-        return in_array($this->status, ['declined', 'error', 'failed', 'voided']);
+        return in_array($this->status, ['declined', 'failed', 'error', 'voided', 'expired']);
+    }
+
+    // Scope para pagos pendientes
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    // Scope para pagos aprobados
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    // Generar referencia automáticamente
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($payment) {
+            if (empty($payment->reference)) {
+                $timestamp = time();
+                $random = strtoupper(substr(md5(uniqid()), 0, 6));
+                $emailPrefix = substr(str_replace(['@', '.', '-'], '', $payment->customer_email), 0, 3);
+                $payment->reference = "MC_{$timestamp}_{$random}_{$emailPrefix}";
+            }
+        });
     }
 }

@@ -12,32 +12,33 @@ return new class extends Migration
             $table->id();
             $table->string('reference')->unique();
             $table->string('customer_name');
-            $table->string('customer_email')->index();
+            $table->string('customer_email');
             $table->string('customer_phone');
-            $table->string('country_code', 5);
             $table->string('country', 2);
             $table->string('profession');
             $table->text('expectations');
             $table->integer('amount');
-            $table->string('currency', 3)->default('COP');
+            $table->string('currency')->default('COP');
             $table->enum('status', [
                 'pending', 
                 'approved', 
                 'declined', 
+                'failed', 
                 'error', 
                 'voided', 
-                'refunded', 
-                'failed'
+                'expired'
             ])->default('pending');
-            $table->string('payment_method');
+            $table->string('wompi_id')->nullable();
+            $table->string('payment_method')->nullable();
             $table->string('payment_method_type')->nullable();
-            $table->string('wompi_id')->nullable()->index();
             $table->json('wompi_response')->nullable();
+            $table->boolean('email_sent')->default(false);
             $table->text('observations')->nullable();
             $table->timestamps();
             
-            $table->index(['reference', 'status']);
-            $table->index(['customer_email', 'created_at']);
+            $table->index('status');
+            $table->index('customer_email');
+            $table->index('created_at');
         });
     }
 

@@ -15,17 +15,16 @@
                     <i class="fas fa-exclamation-circle text-5xl text-white"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-white mb-3">Pago No Completado</h1>
-                <p class="text-red-100">Tu pago no pudo ser procesado</p>
+                <p class="text-red-100">Hubo un problema con tu pago</p>
             </div>
             
             <div class="p-8">
                 <div class="text-center mb-8">
                     <i class="fas fa-credit-card text-5xl text-gray-400 mb-4"></i>
                     <h2 class="text-2xl font-bold text-gray-800 mb-3">Lo sentimos</h2>
-                    <p class="text-gray-600">Hubo un problema con tu método de pago</p>
+                    <p class="text-gray-600">Tu pago no pudo ser procesado</p>
                 </div>
                 
-                @if(isset($payment))
                 <div class="bg-gray-50 rounded-xl p-6 mb-6">
                     <div class="space-y-3">
                         <div class="flex justify-between">
@@ -42,45 +41,16 @@
                         </div>
                     </div>
                 </div>
-                @endif
-                
-                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
-                    <h3 class="font-bold text-yellow-800 mb-4">¿Qué puedes hacer?</h3>
-                    <div class="space-y-3">
-                        <div class="flex items-start">
-                            <i class="fas fa-sync-alt text-yellow-500 mt-1 mr-3"></i>
-                            <div>
-                                <p class="font-medium">Intentar nuevamente</p>
-                                <p class="text-sm text-gray-600">Usando otro método de pago</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start">
-                            <i class="fas fa-credit-card text-yellow-500 mt-1 mr-3"></i>
-                            <div>
-                                <p class="font-medium">Verificar los datos</p>
-                                <p class="text-sm text-gray-600">De tu tarjeta o cuenta bancaria</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="space-y-4">
-                    <a href="{{ url('/') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center transition-all">
-                        <i class="fas fa-redo mr-2"></i> Volver a intentar
+                    <a href="{{ url('/') }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-center">
+                        <i class="fas fa-redo mr-2"></i> Reintentar
                     </a>
-                    <a href="mailto:soporte@smartaccounting.com" class="block w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-4 px-6 rounded-lg text-center transition-all">
-                        <i class="fas fa-headset mr-2"></i> Contactar soporte
+                    <a href="mailto:soporte@smartaccounting.com" class="block w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-4 px-6 rounded-lg text-center">
+                        <i class="fas fa-headset mr-2"></i> Soporte
                     </a>
                 </div>
             </div>
-        </div>
-        
-        <div class="text-center mt-8">
-            <div class="inline-flex items-center text-gray-700">
-                <i class="fas fa-chart-line text-2xl text-blue-500 mr-2"></i>
-                <span class="text-xl font-bold">SMART ACCOUNTING</span>
-            </div>
-            <p class="text-gray-500 text-sm mt-2">El pago es procesado de forma segura por Wompi</p>
         </div>
     </div>
 </body>
