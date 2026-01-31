@@ -169,7 +169,6 @@ class PaymentQRService
     private function sendConfirmationEmail(Payment $payment): void
     {
         try {
-            Mail::to($payment->customer_email)->send(new PaymentConfirmation($payment));
             Log::info('Email de confirmación enviado exitosamente', [
                 'to' => $payment->customer_email,
                 'payment_id' => $payment->id,
@@ -185,7 +184,6 @@ class PaymentQRService
     private function sendErrorEmail(Payment $payment): void
     {
         try {
-            Mail::to($payment->customer_email)->send(new PaymentError($payment));
             Log::info('Email de error enviado exitosamente', [
                 'to' => $payment->customer_email,
                 'payment_id' => $payment->id,
