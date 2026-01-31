@@ -1,0 +1,15 @@
+[phases.setup]
+cmds = ["apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev libzip-dev"]
+
+[phases.install]
+cmds = ["composer install --no-dev --optimize-autoloader"]
+
+# NOTA: Sin npm, ya que no lo necesitas
+[phases.build]
+cmds = ["php artisan optimize"]
+
+[start]
+cmd = "php artisan migrate --force && php artisan storage:link && php artisan optimize:clear && vendor/bin/heroku-php-apache2 public/"
+
+[environment]
+PORT = "8080"
