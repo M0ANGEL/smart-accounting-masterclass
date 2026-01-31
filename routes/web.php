@@ -28,6 +28,7 @@ Route::get('/payment/cleanup', function() {
     return response()->json(['cleaned' => true]);
 });
 
+
 Route::get('/health', function () {
-    return response()->json(['status' => 'healthy']);
+    return response()->json(['status' => 'ok', 'timestamp' => now()]);
 });
