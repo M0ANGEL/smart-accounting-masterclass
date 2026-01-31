@@ -1,12 +1,11 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "builder": "NIXPACKS"
   },
   "deploy": {
-    "numReplicas": 1,
-    "restartPolicyType": "ALWAYS",
-    "restartPolicyMaxRetries": 3
+    "startCommand": "php artisan migrate --force && vendor/bin/heroku-php-apache2 public/",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE"
   }
 }
