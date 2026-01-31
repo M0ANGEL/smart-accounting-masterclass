@@ -1,0 +1,12 @@
+# nixpacks.toml (en BACKEND/)
+[phases.setup]
+cmds = ["apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev libzip-dev"]
+
+[phases.install]
+cmds = ["composer install --no-dev --optimize-autoloader"]
+
+[phases.build]
+cmds = ["npm ci --only=production", "npm run build", "php artisan optimize"]
+
+[start]
+cmd = "php artisan migrate --force && php artisan storage:link && php artisan optimize:clear && php -S 0.0.0.0:$PORT -t public"
