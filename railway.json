@@ -4,8 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "php artisan migrate --force && vendor/bin/heroku-php-apache2 public/",
-    "healthcheckPath": "/",
-    "restartPolicyType": "ON_FAILURE"
+    "startCommand": "vendor/bin/heroku-php-apache2 public/",
+    "healthcheckPath": "/"
   }
 }
